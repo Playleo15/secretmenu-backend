@@ -1,0 +1,64 @@
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
+const fs = require('fs');
+const path = require('path');
+
+// Middleware para leer JSON y urlencoded
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Carpeta para guardar imágenes
+const IMAGES_DIR = path.join(__dirname, 'images');
+if (!fs.existsSync(IMAGES_DIR)) {
+  fs.mkdirSync(IMAGES_DIR);
+}
+
+// Ruta POST para login (ejemplo simplificado)
+app.post('/login', (req, res) => {
+  const { usuario, password } = req.body;
+  if (!usuario || !password) {
+    return res.status(400).json({ error: 'Faltan datos' });
+  }
+
+  // Aquí iría la validación real con base de datos
+  if (usuario === 'admin' && password === '1234') {
+    return res.json({
+      id: 1,
+      usuario: 'admin',
+      email: 'admin@example.com',
+      telefono: '123456789',
+      foto: 'user_default.png',
+    });
+  } else {
+    return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
+  }
+});
+
+// Ruta POST para registrar usuario con imagen (base64)
+app.post('/register', (req, res) => {
+  const { usuario, password, email, telefono, fotoBase64 } = req.body;
+  if (!usuario || !password || !email) {
+    return res.status(400).json({ error: 'Faltan datos' });
+  }
+
+  // Guardar imagen si se envía
+  let filename = 'user_default.png';
+  if (fotoBase64) {
+    const base64Data = fotoBase64.replace(/^data:image\/\w+;base64,/, '');
+    filename = `${Date.now()}_${usuario}.png`;
+    fs.writeFileSync(path.join(IMAGES_DIR, filename), base64Data, { encoding: 'base64' });
+  }
+
+  // Guardar usuario en DB (pendiente)
+
+  return res.json({ mensaje: 'Usuario registrado', usuario, foto: filename });
+});
+
+// Servir imágenes guardadas
+app.use('/images', express.static(IMAGES_DIR));
+
+// Servidor activo sin dormir
+app.listen(port, () => {
+  console.log(`Servidor corriendo en puerto ${port}`);
+});
